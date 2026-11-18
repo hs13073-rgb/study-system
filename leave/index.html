@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>家長請假系統</title>
+<style>
+:root{--bg:#f3f6fb;--card:#fff;--ink:#1f2937;--mute:#6b7280;--line:#dbe3ef;--pri:#1f5fbf;--pri2:#e8f0fe;--ok:#15803d;--warn:#b45309}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif}
+header{background:linear-gradient(135deg,#0f766e,#14b8a6);color:#fff;padding:22px 16px}
+header h1{margin:0;font-size:22px}header p{margin:4px 0 0;opacity:.92;font-size:14px}
+main{max-width:640px;margin:0 auto;padding:14px 14px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:14px 0}
+.card h2{margin:0 0 8px;font-size:18px;color:#0f766e}
+button{font:inherit;border:0;border-radius:10px;padding:11px 18px;background:#0f766e;color:#fff;cursor:pointer;font-weight:600}
+button.sec{background:#ccfbf1;color:#115e59}button.red{background:#fee2e2;color:#991b1b}button:disabled{opacity:.45;cursor:not-allowed}
+label.f{display:block;margin:12px 0 4px;font-weight:600}
+input,textarea,select{width:100%;font:inherit;padding:10px 12px;border:1px solid #c5d0e2;border-radius:10px;background:#fff}
+textarea{min-height:80px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:10px}
+.inline{display:flex;gap:8px}.inline input{flex:1}
+.msg{margin:12px 0;padding:11px 14px;border-radius:10px}
+.msg.ok{background:#dcfce7;color:#166534}.msg.err{background:#fee2e2;color:#991b1b}.msg.info{background:#e8f0fe;color:#1e3a8a}
+.hidden{display:none!important}
+.hint{font-size:13px;color:var(--mute)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;margin:6px 0 10px}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:4px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .h{text-align:center;font-size:13px;color:var(--mute);padding:4px 0}
+.cal .m{grid-column:1/-1;font-weight:700;margin:12px 0 2px;color:#0f766e}
+.d{aspect-ratio:1/1;border-radius:10px;border:1.5px solid #c5d0e2;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:15px;padding:0;color:var(--ink);font-weight:600;position:relative}
+.d small{font-size:10px;font-weight:400}
+.d.ok{cursor:pointer;border-color:#14b8a6}
+.d.sel{background:#0f766e;color:#fff;border-color:#0f766e}
+.d.leave{background:#fed7aa;border-color:#fb923c;color:#7c2d12;cursor:default}
+.d.off{background:#eef1f6;color:#a3acbb;border-color:#e5e9f1;cursor:not-allowed;font-weight:400}
+.d.none{border:0;background:transparent}
+.list .it{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
+.list .it:last-child{border:0}
+.warn{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:14px;color:#78350f}
+@media(max-width:520px){.row3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><h1 id="title">家長請假系統</h1><p>僅限家長使用，請輸入報名成功信中的專屬驗證碼</p></header>
+<main>
+  <section class="card" id="login">
+    <h2>🔐 家長驗證</h2>
+    <div class="row3">
+      <div><label class="f">班級</label><input id="cls" maxlength="10" inputmode="numeric" placeholder="例：901"></div>
+      <div><label class="f">座號</label><input id="seat" type="number" min="1" max="99" inputmode="numeric"></div>
+      <div><label class="f">姓名</label><input id="name" maxlength="20"></div>
+    </div>
+    <div style="margin-top:12px"><button class="sec" id="send">忘記驗證碼？重新寄到報名 Email</button></div>
+    <label class="f">驗證碼</label>
+    <div class="inline"><input id="code" inputmode="numeric" maxlength="6" placeholder="報名成功信中的 6 位數字"><button id="go">登入</button></div>
+    <div id="lmsg" class="msg hidden"></div>
+  </section>
+
+  <div id="app" class="hidden">
+    <section class="card">
+      <h2 id="who"></h2>
+      <div class="warn">請假須由<b>家長</b>親自辦理，<b>請假不予退費</b>。灰色日期（未報名、暫停自習、已過期）無法請假。<span id="cut"></span></div>
+    </section>
+
+    <section class="card">
+      <h2>📅 選擇請假日期（可多選）</h2>
+      <div class="legend"><span><i style="background:#fff;border:1.5px solid #14b8a6"></i>可請假</span><span><i style="background:#0f766e"></i>已選取</span><span><i style="background:#fed7aa"></i>已請假</span><span><i style="background:#eef1f6"></i>不可選</span></div>
+      <div id="cal" class="cal"></div>
+      <div id="calEmpty" class="hint hidden">目前沒有可請假的日期。</div>
+    </section>
+
+    <section class="card">
+      <h2>📝 請假事由</h2>
+      <div class="hint" id="selInfo">尚未選擇日期</div>
+      <label class="f">事由</label>
+      <select id="reason"><option value="">請選擇事由</option></select>
+      <label class="f">備註說明 <span class="hint">（選填）</span></label>
+      <textarea id="note" maxlength="200" placeholder="可補充說明，例如：就診時間、預計到校時間"></textarea>
+      <div id="smsg" class="msg hidden"></div>
+      <div style="margin-top:12px"><button id="submit">送出請假</button></div>
+    </section>
+
+    <section class="card">
+      <h2>📋 我的請假紀錄（尚未發生）</h2>
+      <div id="mine" class="list"></div>
+    </section>
+    <div style="text-align:center"><button class="sec" id="logout">登出</button></div>
+  </div>
+</main>
+
+<script>
+/* ★ 貼上 Apps Script 網頁應用程式網址（/exec 結尾），與報名頁相同 ★ */
+const API_URL = 'https://script.google.com/macros/s/AKfycbyoRcC09HhraAuBpc6vC7QFfHALMQX_wIX_pU6N1A0ias_M1dJeI-mghxdS41ArdkVa/exec';
+
+const $ = id => document.getElementById(id);
+const WD = ['日','一','二','三','四','五','六'];
+let TOKEN = sessionStorage.getItem('lv_token') || '', CAL = [], SEL = new Set();
+
+async function api(action, data){
+  const r = await fetch(API_URL, {method:'POST', body: JSON.stringify(Object.assign({action}, data||{}))});
+  const j = await r.json(); if(!j.ok) throw new Error(j.error); return j.data;
+}
+function msg(id, type, text){ const e=$(id); if(!type){e.className='msg hidden';return;} e.className='msg '+type; e.textContent=text; }
+function busy(b,on,t){ if(on){b.dataset.l=b.textContent;b.disabled=true;b.textContent=t||'處理中…';} else {b.disabled=false;b.textContent=b.dataset.l||b.textContent;} }
+function md(k){ const p=k.split('-'); return (+p[1])+'/'+(+p[2]); }
+
+$('send').onclick=async()=>{ const b=$('send'); busy(b,true,'寄送中…');
+  try{ const r=await api('sendLoginCode',{cls:$('cls').value,seat:$('seat').value,name:$('name').value}); msg('lmsg','info','驗證碼已重新寄至：'+r.sent.join('、')+'（請檢查垃圾郵件匣）'); }
+  catch(e){ msg('lmsg','err',e.message); } busy(b,false); };
+$('go').onclick=async()=>{ const b=$('go'); busy(b,true,'驗證中…');
+  try{ const r=await api('login',{cls:$('cls').value,seat:$('seat').value,name:$('name').value,code:$('code').value});
+    TOKEN=r.token; sessionStorage.setItem('lv_token',TOKEN); msg('lmsg'); await load(); }
+  catch(e){ msg('lmsg','err',e.message); } busy(b,false); };
+$('logout').onclick=()=>{ TOKEN=''; sessionStorage.removeItem('lv_token'); location.reload(); };
+
+async function load(){
+  const r=await api('leaveCalendar',{token:TOKEN});
+  $('login').classList.add('hidden'); $('app').classList.remove('hidden');
+  $('who').textContent=r.me.cls+' 班 '+r.me.seat+' 號 '+r.me.name+' 家長您好';
+  $('cut').textContent=' 當日請假：夜讀至 '+r.cutoffNight+' 止'+(r.hasSat?'，週六至 '+r.cutoffSat+' 止':'')+'。';
+  const sel=$('reason'); sel.innerHTML='<option value="">請選擇事由</option>';
+  r.reasons.forEach(x=>{ const o=document.createElement('option'); o.value=x; o.textContent=x; sel.appendChild(o); });
+  CAL=r.calendar; SEL.clear(); draw();
+}
+
+function draw(){
+  const box=$('cal'); box.innerHTML='';
+  if(!CAL.length){ $('calEmpty').classList.remove('hidden'); } else $('calEmpty').classList.add('hidden');
+  const by={}; CAL.forEach(e=>by[e.date]=e);
+  if(CAL.length){
+    const first=CAL[0].date, last=CAL[CAL.length-1].date;
+    let [y,m]=first.split('-').map(Number); const [ly,lm]=last.split('-').map(Number);
+    while(y<ly||(y===ly&&m<=lm)){
+      const t=document.createElement('div'); t.className='m'; t.textContent=y+' 年 '+m+' 月'; box.appendChild(t);
+      WD.forEach(w=>{ const h=document.createElement('div'); h.className='h'; h.textContent=w; box.appendChild(h); });
+      const start=new Date(y,m-1,1).getDay(), days=new Date(y,m,0).getDate();
+      for(let i=0;i<start;i++){ const e=document.createElement('div'); e.className='d none'; box.appendChild(e); }
+      for(let d=1;d<=days;d++){
+        const k=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0'), e=by[k];
+        const b=document.createElement('button'); b.type='button'; b.className='d'; b.innerHTML=d;
+        if(!e){ b.className+=' off'; b.disabled=true; }
+        else if(e.leave){ b.className+=' leave'; b.disabled=true; b.innerHTML=d+'<small>已請假</small>'; b.title=e.leave.reason; }
+        else if(e.status!=='ok'){ b.className+=' off'; b.disabled=true; b.title=e.reason; b.innerHTML=d+'<small>'+(e.status==='susp'?'暫停':e.status==='notreg'?'未報名':'截止')+'</small>'; }
+        else { b.className+=' ok'+(SEL.has(k)?' sel':''); b.onclick=()=>{ SEL.has(k)?SEL.delete(k):SEL.add(k); draw(); }; }
+        box.appendChild(b);
+      }
+      m++; if(m>12){m=1;y++;}
+    }
+  }
+  const s=[...SEL].sort(); $('selInfo').textContent=s.length?('已選 '+s.length+' 天：'+s.map(md).join('、')):'尚未選擇日期（請於上方日曆點選）';
+  const list=$('mine'); list.innerHTML='';
+  const mine=CAL.filter(e=>e.leave);
+  if(!mine.length){ list.innerHTML='<div class="hint">目前沒有請假紀錄</div>'; }
+  mine.forEach(e=>{
+    const d=document.createElement('div'); d.className='it';
+    const t=document.createElement('div'); t.textContent=md(e.date)+'（週'+WD[e.dow%7]+'）'+e.leave.reason+(e.leave.note?'｜'+e.leave.note:'');
+    d.appendChild(t);
+    if(e.status!=='closed'){ const x=document.createElement('button'); x.className='red'; x.textContent='取消'; x.onclick=()=>cancel(e.date,x); d.appendChild(x); }
+    list.appendChild(d);
+  });
+}
+
+$('submit').onclick=async()=>{
+  const b=$('submit'); msg('smsg');
+  try{
+    if(!SEL.size) throw new Error('請先在日曆選擇請假日期');
+    if(!$('reason').value) throw new Error('請選擇請假事由');
+    if(!confirm('確定請假 '+[...SEL].sort().map(md).join('、')+'？\n（請假不予退費）')) return;
+    busy(b,true,'送出中…');
+    const r=await api('leaveSubmit',{token:TOKEN,dates:[...SEL],reason:$('reason').value,note:$('note').value});
+    CAL=r.calendar; SEL.clear(); $('note').value=''; $('reason').value=''; draw(); msg('smsg','ok',r.message);
+  }catch(e){ msg('smsg','err',e.message); if(/逾時/.test(e.message)){ sessionStorage.removeItem('lv_token'); } }
+  busy(b,false);
+};
+async function cancel(date,btn){
+  if(!confirm('確定取消 '+md(date)+' 的請假？')) return;
+  btn.disabled=true;
+  try{ const r=await api('leaveCancel',{token:TOKEN,dates:[date]}); CAL=r.calendar; draw(); msg('smsg','ok',r.message); }
+  catch(e){ msg('smsg','err',e.message); btn.disabled=false; }
+}
+
+(async()=>{
+  try{ const i=await api('info'); $('title').textContent=(i.school?i.school+' ':'')+i.title+'－請假'; document.title=i.title+'請假'; }catch(e){}
+  if(TOKEN){ try{ await load(); }catch(e){ sessionStorage.removeItem('lv_token'); TOKEN=''; } }
+})();
+</script>
+</body>
+</html>
