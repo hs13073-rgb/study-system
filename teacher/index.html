@@ -111,7 +111,7 @@ tr.void td{color:#9ca3af;text-decoration:line-through}
 
 <script>
 /* ★ 貼上 Apps Script 網頁應用程式網址（/exec 結尾），與報名頁相同 ★ */
-const API_URL = 'https://script.google.com/macros/s/AKfycbyoRcC09HhraAuBpc6vC7QFfHALMQX_wIX_pU6N1A0ias_M1dJeI-mghxdS41ArdkVa/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyhMrVifg5QXulxQwjkSW3pBkqwa6jth5zVj6dTj-btPZYUGo70v_yunGy189J9kttH/exec';
 
 const $ = id => document.getElementById(id);
 const WD = ['日','一','二','三','四','五','六'];
@@ -176,7 +176,8 @@ async function loadRoster(){
 }
 function roomList(){
   const rm=$('a_room').value, all=ROSTER?ROSTER.students:[];
-  return rm==='*'?all:all.filter(s=>rm==='?'?!s.room:s.room===rm);
+  const l=rm==='*'?all:all.filter(s=>rm==='?'?!s.room:s.room===rm);
+  return rm==='*'?l:l.slice().sort((a,b)=>(a.pos?0:1)-(b.pos?0:1)||a.pos.localeCompare(b.pos,'zh',{numeric:true})||a.cls.localeCompare(b.cls,'zh')||a.seat-b.seat);
 }
 function fillRooms(){
   const sel=$('a_room'), keep=sel.value||sessionStorage.getItem('t_room')||'*'; sel.innerHTML='';
@@ -196,7 +197,7 @@ function drawRoster(){
   list.forEach(s=>{
     const row=el('div','st'), nm=el('div','nm'), b=el('b','',s.cls+'班 '+s.seat+'號 '+s.name);
     nm.appendChild(b);
-    if(showRoom&&s.room){ nm.appendChild(document.createTextNode(' ')); nm.appendChild(el('span','badge b-pt0',s.room)); }
+    if(s.room||s.pos){ nm.appendChild(document.createTextNode(' ')); nm.appendChild(el('span','badge b-pt0',(showRoom&&s.room?s.room+' ':'')+(s.pos?'座位 '+s.pos:''))); }
     if(s.leave){ nm.appendChild(document.createTextNode(' ')); nm.appendChild(el('span','badge b-leave','請假：'+s.leave.reason)); }
     nm.appendChild(document.createTextNode(' ')); nm.appendChild(el('span','badge '+(s.points?'b-pt':'b-pt0'),'違規 '+s.points+'/'+THR));
     const sub=el('div','', '家長：'+s.parents+'　☎ '+s.phones+(s.note?'　備註：'+s.note:'')+(s.leave&&s.leave.note?'　請假備註：'+s.leave.note:''));
