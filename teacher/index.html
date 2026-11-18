@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>輪值老師系統</title>
+<style>
+:root{--bg:#f4f5f9;--card:#fff;--ink:#1f2937;--mute:#6b7280;--line:#dfe3ec;--pri:#4338ca;--pri2:#e0e7ff;--ok:#15803d;--bad:#b91c1c;--warn:#b45309}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif}
+header{background:linear-gradient(135deg,#4338ca,#6366f1);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+header h1{margin:0;font-size:19px}header small{opacity:.9}
+main{max-width:860px;margin:0 auto;padding:12px 12px 70px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0}
+button{font:inherit;border:0;border-radius:9px;padding:9px 15px;background:var(--pri);color:#fff;cursor:pointer;font-weight:600}
+button.sec{background:var(--pri2);color:var(--pri)}button.red{background:#fee2e2;color:var(--bad)}button.sm{padding:5px 10px;font-size:14px}button:disabled{opacity:.45}
+input,select,textarea{font:inherit;padding:9px 11px;border:1px solid #c7cde0;border-radius:9px;background:#fff;width:100%}
+textarea{min-height:64px}
+label.f{display:block;margin:10px 0 4px;font-weight:600}
+.tabs{display:flex;gap:6px;overflow:auto;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:5}
+.tabs button{background:#fff;color:var(--ink);border:1px solid var(--line);white-space:nowrap}
+.tabs button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.bar input[type=date]{width:auto}.bar .sp{flex:1}
+.hidden{display:none!important}
+.msg{margin:10px 0;padding:10px 13px;border-radius:9px}.msg.ok{background:#dcfce7;color:#166534}.msg.err{background:#fee2e2;color:#991b1b}.msg.info{background:#e0e7ff;color:#312e81}
+.stat{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}.stat span{background:#eef0f8;border-radius:999px;padding:3px 12px;font-size:14px}
+.st{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 4px;border-bottom:1px solid var(--line)}
+.st:last-child{border:0}.st .nm{flex:1;min-width:150px}.st .nm b{font-size:17px}.st .nm div{font-size:13px;color:var(--mute)}
+.seg{display:flex;border:1px solid #c7cde0;border-radius:9px;overflow:hidden}
+.seg button{border-radius:0;background:#fff;color:var(--ink);padding:7px 13px}
+.seg button.on.a{background:#16a34a;color:#fff}.seg button.on.l{background:#f59e0b;color:#fff}.seg button.on.x{background:#dc2626;color:#fff}
+.badge{display:inline-block;border-radius:6px;padding:1px 8px;font-size:12px;font-weight:600}
+.b-leave{background:#ffedd5;color:#9a3412}.b-pt{background:#fee2e2;color:#991b1b}.b-pt0{background:#ecfdf5;color:#047857}
+.items label{display:flex;gap:9px;align-items:flex-start;padding:8px 10px;border:1px solid var(--line);border-radius:9px;margin:6px 0;cursor:pointer}
+.items input{width:20px;height:20px;margin-top:3px;flex:none}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.chip{background:var(--pri2);color:var(--pri);border-radius:999px;padding:4px 6px 4px 12px;display:inline-flex;gap:6px;align-items:center;font-weight:600}
+.chip button{padding:0 7px;background:transparent;color:var(--pri);font-size:18px;line-height:1}
+.res{border:1px solid var(--line);border-radius:9px;max-height:190px;overflow:auto;margin-top:4px}
+.res div{padding:8px 12px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between}.res div:hover{background:#f3f4ff}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f1f2f9;white-space:nowrap}
+tr.void td{color:#9ca3af;text-decoration:line-through}
+.scroll{overflow:auto}
+.alert{background:#fef3c7;border:1px solid #fcd34d;color:#78350f;border-radius:9px;padding:9px 13px;margin:8px 0}
+.reach{background:#fee2e2;border:2px solid #dc2626;color:#991b1b;border-radius:9px;padding:10px 14px;margin:8px 0;font-weight:700}
+.fab{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 14px;display:flex;justify-content:center;gap:10px;z-index:9}
+</style>
+</head>
+<body>
+<header><div><h1 id="title">輪值老師系統</h1><small id="who"></small></div><button class="sec sm hidden" id="logout">登出</button></header>
+<main>
+  <section class="card" id="login" style="max-width:420px;margin:30px auto">
+    <h2 style="margin-top:0">輪值老師登入</h2>
+    <label class="f">老師姓名</label><select id="tname"></select>
+    <label class="f">密碼</label><input type="password" id="tpw" autocomplete="current-password">
+    <div id="lmsg" class="msg hidden"></div>
+    <div style="margin-top:12px"><button id="go" style="width:100%">登入</button></div>
+  </section>
+
+  <div id="app" class="hidden">
+    <div class="tabs" id="tabs">
+      <button data-t="att" class="on">📋 點名</button><button data-t="vio">⚠️ 違規登記</button><button data-t="query">🔎 違規查詢</button><button data-t="leave">📝 請假名單</button>
+    </div>
+    <div class="card bar"><b>日期</b><input type="date" id="date"><button class="sec sm" id="today">今天</button><span class="sp"></span><span id="dinfo" class="hint"></span></div>
+
+    <!-- 點名 -->
+    <section id="t_att">
+      <div id="a_alert"></div>
+      <div class="card">
+        <div class="stat" id="a_stat"></div>
+        <div class="bar" style="margin-bottom:6px"><button class="sec sm" id="allIn">本教室未請假者全部設為「到」</button><button class="sec sm" id="reload">重新載入</button><span class="sp"></span><select id="a_room" style="width:auto;min-width:130px"></select><input id="a_filter" placeholder="篩選班級/座號/姓名" style="width:180px"></div>
+        <div id="roster"></div>
+      </div>
+      <div class="fab"><button id="saveAtt">💾 儲存點名</button></div>
+      <div id="a_msg" class="msg hidden"></div>
+    </section>
+
+    <!-- 違規登記 -->
+    <section id="t_vio" class="hidden">
+      <div class="card">
+        <h3 style="margin-top:0">1. 選擇學生（可多位）</h3>
+        <input id="v_q" placeholder="輸入班級、座號或姓名搜尋（例：901 或 王小明）">
+        <div id="v_res" class="res hidden"></div>
+        <div class="chips" id="v_chips"></div>
+        <h3>2. 勾選違規項目（依自律公約）</h3>
+        <div class="items" id="v_items"></div>
+        <label class="f">備註 <span class="hint">（選填，會寫進通知信）</span></label>
+        <textarea id="v_note" maxlength="300"></textarea>
+        <div class="alert" id="v_tip"></div>
+        <div id="v_msg"></div>
+        <button id="v_go">登記違規並通知家長</button>
+      </div>
+    </section>
+
+    <!-- 查詢 -->
+    <section id="t_query" class="hidden">
+      <div class="card">
+        <div class="bar"><input id="q_q" placeholder="班級／座號／姓名（可空白）" style="flex:1;min-width:160px">
+          <input type="date" id="q_from"><span>～</span><input type="date" id="q_to"><button id="q_go">查詢</button></div>
+        <h3>累計點數</h3><div class="scroll"><table id="q_sum"></table></div>
+        <h3>違規紀錄</h3><div class="scroll"><table id="q_tbl"></table></div>
+        <div id="q_msg" class="msg hidden"></div>
+      </div>
+    </section>
+
+    <!-- 請假名單 -->
+    <section id="t_leave" class="hidden">
+      <div class="card"><h3 style="margin-top:0" id="l_title">當日請假名單</h3><div class="scroll"><table id="l_tbl"></table></div></div>
+    </section>
+  </div>
+</main>
+
+<script>
+/* ★ 貼上 Apps Script 網頁應用程式網址（/exec 結尾），與報名頁相同 ★ */
+const API_URL = 'https://script.google.com/macros/s/AKfycbyoRcC09HhraAuBpc6vC7QFfHALMQX_wIX_pU6N1A0ias_M1dJeI-mghxdS41ArdkVa/exec';
+
+const $ = id => document.getElementById(id);
+const WD = ['日','一','二','三','四','五','六'];
+let TOKEN = sessionStorage.getItem('t_token') || '', NAME = sessionStorage.getItem('t_name') || '';
+let ROSTER = null, ATT = {}, PICK = new Map(), ITEMS = [], THR = 3, curTab = 'att';
+
+async function api(action, data){
+  const r = await fetch(API_URL, {method:'POST', body: JSON.stringify(Object.assign({action, token:TOKEN}, data||{}))});
+  const j = await r.json();
+  if(!j.ok){ if(/逾時/.test(j.error)){ logout(true); } throw new Error(j.error); }
+  return j.data;
+}
+function msg(id,type,text){ const e=$(id); if(!type){e.className='msg hidden';return;} e.className='msg '+type; e.textContent=text; }
+function today(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function el(t,c,x){ const e=document.createElement(t); if(c) e.className=c; if(x!==undefined) e.textContent=x; return e; }
+function md(k){ const p=k.split('-'); return (+p[1])+'/'+(+p[2])+'('+WD[new Date(k+'T00:00:00').getDay()]+')'; }
+
+/* 登入 */
+async function loadTeachers(){
+  try{ const t=await api('teachers'); const s=$('tname'); s.innerHTML=''; t.forEach(n=>{ const o=el('option','',n); o.value=n; s.appendChild(o); }); if(NAME) s.value=NAME; }
+  catch(e){ msg('lmsg','err','無法連線：'+e.message); }
+}
+$('go').onclick=async()=>{
+  const b=$('go'); b.disabled=true;
+  try{ const r=await api('tLogin',{name:$('tname').value,password:$('tpw').value}); TOKEN=r.token; NAME=r.name;
+    sessionStorage.setItem('t_token',TOKEN); sessionStorage.setItem('t_name',NAME); $('tpw').value=''; msg('lmsg'); start(); }
+  catch(e){ msg('lmsg','err',e.message); } b.disabled=false;
+};
+$('tpw').addEventListener('keydown',e=>{ if(e.key==='Enter') $('go').click(); });
+function logout(silent){ TOKEN=''; sessionStorage.removeItem('t_token'); $('app').classList.add('hidden'); $('login').classList.remove('hidden'); $('logout').classList.add('hidden'); $('who').textContent=''; if(!silent) location.reload(); }
+$('logout').onclick=()=>logout();
+
+async function start(){
+  $('login').classList.add('hidden'); $('app').classList.remove('hidden'); $('logout').classList.remove('hidden');
+  $('who').textContent='輪值：'+NAME;
+  $('date').value=today();
+  try{ const r=await api('tItems'); ITEMS=r.items; THR=r.threshold; drawItems(); }catch(e){}
+  refresh();
+}
+
+/* 分頁 */
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{
+  curTab=b.dataset.t; document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  ['att','vio','query','leave'].forEach(t=>$('t_'+t).classList.toggle('hidden',t!==curTab));
+  $('date').closest('.card').classList.toggle('hidden', curTab==='query');
+  refresh();
+});
+$('date').onchange=refresh; $('today').onclick=()=>{ $('date').value=today(); refresh(); };
+function refresh(){ if(curTab==='att') loadRoster(); else if(curTab==='leave') loadLeave(); else if(curTab==='query') runQuery(); }
+
+/* 點名 */
+async function loadRoster(){
+  msg('a_msg');
+  try{
+    const r=await api('tRoster',{date:$('date').value}); ROSTER=r; ATT={}; r.students.forEach(s=>ATT[s.id]=s.att); fillRooms();
+    $('dinfo').textContent=r.inPeriod?(r.kind+'日'):'非自習日';
+    const al=$('a_alert'); al.innerHTML='';
+    if(!r.inPeriod) al.appendChild(el('div','alert','這天不是自習日（不在夜讀／週六自習期間或為週日）。'));
+    if(r.suspended) al.appendChild(el('div','alert','⚠ 這天設定為「暫停自習」：'+r.suspended+'（名單僅供參考）'));
+    drawRoster();
+  }catch(e){ msg('a_msg','err',e.message); }
+}
+function roomList(){
+  const rm=$('a_room').value, all=ROSTER?ROSTER.students:[];
+  return rm==='*'?all:all.filter(s=>rm==='?'?!s.room:s.room===rm);
+}
+function fillRooms(){
+  const sel=$('a_room'), keep=sel.value||sessionStorage.getItem('t_room')||'*'; sel.innerHTML='';
+  const add=(v,t)=>{ const o=el('option','',t); o.value=v; sel.appendChild(o); };
+  add('*','全部教室'); (ROSTER?ROSTER.rooms:[]).forEach(r=>add(r,r));
+  if(ROSTER&&ROSTER.students.some(s=>!s.room)) add('?','未分配教室');
+  sel.value=[...sel.options].some(o=>o.value===keep)?keep:'*';
+}
+function drawRoster(){
+  const f=$('a_filter').value.trim(), box=$('roster'); box.innerHTML='';
+  const base=roomList(), showRoom=$('a_room').value==='*';
+  const list=base.filter(s=>!f||(s.cls+s.seat+s.name).indexOf(f)>=0);
+  let c={到:0,遲到:0,缺席:0,請假:0,未點:0};
+  base.forEach(s=>{ if(s.leave) c.請假++; const a=ATT[s.id]; if(a) c[a]++; else if(!s.leave) c.未點++; });
+  const st=$('a_stat'); st.innerHTML=''; [['應到',base.length],['到',c.到],['遲到',c.遲到],['缺席',c.缺席],['請假',c.請假],['未點名',c.未點]].forEach(x=>st.appendChild(el('span','',x[0]+' '+x[1])));
+  if(!list.length){ box.appendChild(el('div','hint','沒有學生')); return; }
+  list.forEach(s=>{
+    const row=el('div','st'), nm=el('div','nm'), b=el('b','',s.cls+'班 '+s.seat+'號 '+s.name);
+    nm.appendChild(b);
+    if(showRoom&&s.room){ nm.appendChild(document.createTextNode(' ')); nm.appendChild(el('span','badge b-pt0',s.room)); }
+    if(s.leave){ nm.appendChild(document.createTextNode(' ')); nm.appendChild(el('span','badge b-leave','請假：'+s.leave.reason)); }
+    nm.appendChild(document.createTextNode(' ')); nm.appendChild(el('span','badge '+(s.points?'b-pt':'b-pt0'),'違規 '+s.points+'/'+THR));
+    const sub=el('div','', '家長：'+s.parents+'　☎ '+s.phones+(s.note?'　備註：'+s.note:'')+(s.leave&&s.leave.note?'　請假備註：'+s.leave.note:''));
+    nm.appendChild(sub); row.appendChild(nm);
+    const seg=el('div','seg');
+    [['到','a'],['遲到','l'],['缺席','x']].forEach(p=>{
+      const bt=el('button',(ATT[s.id]===p[0]?'on ':'')+p[1],p[0]); bt.onclick=()=>{ ATT[s.id]=(ATT[s.id]===p[0]?'':p[0]); drawRoster(); }; seg.appendChild(bt); });
+    row.appendChild(seg);
+    const v=el('button','sec sm','違規'); v.onclick=()=>{ addPick({id:s.id,cls:s.cls,seat:s.seat,name:s.name,points:s.points}); gotoTab('vio'); };
+    row.appendChild(v); box.appendChild(row);
+  });
+}
+$('a_room').onchange=()=>{ sessionStorage.setItem('t_room',$('a_room').value); drawRoster(); };
+$('a_filter').oninput=drawRoster; $('reload').onclick=loadRoster;
+$('allIn').onclick=()=>{ if(!ROSTER) return; roomList().forEach(s=>{ if(!s.leave&&!ATT[s.id]) ATT[s.id]='到'; }); drawRoster(); };
+$('saveAtt').onclick=async()=>{
+  if(!ROSTER) return; const b=$('saveAtt'); b.disabled=true;
+  try{ const records=ROSTER.students.filter(s=>!s.leave||ATT[s.id]).map(s=>({id:s.id,status:ATT[s.id]||''}));
+    const r=await api('tSaveAtt',{date:$('date').value,records}); msg('a_msg','ok',r.message); }
+  catch(e){ msg('a_msg','err',e.message); } b.disabled=false;
+};
+function gotoTab(t){ document.querySelector('#tabs button[data-t="'+t+'"]').click(); }
+
+/* 違規登記 */
+function drawItems(){
+  const box=$('v_items'); box.innerHTML='';
+  ITEMS.forEach(it=>{ if(it.title.indexOf('說明列')>=0) return;
+    const l=el('label'), c=document.createElement('input'); c.type='checkbox'; c.value=it.title;
+    const d=el('div'); d.appendChild(el('b','',it.title)); d.appendChild(el('div','hint',it.content)); l.appendChild(c); l.appendChild(d); box.appendChild(l); });
+  $('v_tip').textContent='每次登記記違規 1 點（不論勾選幾項）。累計達 '+THR+' 點將自動退班，並於通知信註明「已達退班門檻」。';
+}
+function addPick(s){ PICK.set(s.id,s); drawChips(); }
+function drawChips(){
+  const c=$('v_chips'); c.innerHTML='';
+  PICK.forEach((s,id)=>{ const ch=el('span','chip',s.cls+'班'+s.seat+'號 '+s.name+'（'+s.points+'點）'); const x=el('button','','×'); x.onclick=()=>{PICK.delete(id);drawChips();}; ch.appendChild(x); c.appendChild(ch); });
+}
+let st;
+$('v_q').oninput=()=>{ clearTimeout(st); const q=$('v_q').value.trim(); const box=$('v_res');
+  if(!q){ box.classList.add('hidden'); return; }
+  st=setTimeout(async()=>{ try{ const r=await api('tSearch',{q}); box.innerHTML=''; box.classList.remove('hidden');
+    if(!r.length) box.appendChild(el('div','','找不到在班學生'));
+    r.forEach(s=>{ const d=el('div'); d.appendChild(el('span','',s.cls+'班 '+s.seat+'號 '+s.name)); d.appendChild(el('span','hint','違規 '+s.points+' 點')); d.onclick=()=>{ addPick(s); box.classList.add('hidden'); $('v_q').value=''; }; box.appendChild(d); }); }catch(e){} },300);
+};
+$('v_go').onclick=async()=>{
+  const b=$('v_go'), out=$('v_msg'); out.innerHTML='';
+  const items=[...document.querySelectorAll('#v_items input:checked')].map(x=>x.value);
+  if(!PICK.size){ out.appendChild(el('div','msg err','請先選擇學生')); return; }
+  if(!items.length){ out.appendChild(el('div','msg err','請勾選至少一項違規項目')); return; }
+  const names=[...PICK.values()].map(s=>s.cls+'班'+s.seat+'號'+s.name).join('、');
+  if(!confirm('確定登記違規？\n學生：'+names+'\n項目：'+items.join('、')+'\n\n將記點 1 次並寄信通知家長。')) return;
+  b.disabled=true;
+  try{ const r=await api('tAddVio',{date:$('date').value||today(),ids:[...PICK.keys()],items,note:$('v_note').value});
+    r.results.forEach(x=>{ out.appendChild(el('div',x.reached?'reach':'msg ok',(x.reached?'⚠ 已達退班門檻！':'已登記：')+x.cls+'班 '+x.seat+'號 '+x.name+' 累計 '+x.points+'/'+r.threshold+' 點，已寄信通知家長'+(x.reached?'（信中註明已達退班門檻，學生已改為退班）':''))); });
+    PICK.clear(); drawChips(); document.querySelectorAll('#v_items input').forEach(x=>x.checked=false); $('v_note').value=''; }
+  catch(e){ out.appendChild(el('div','msg err',e.message)); } b.disabled=false;
+};
+
+/* 查詢 */
+$('q_go').onclick=runQuery;
+async function runQuery(){
+  msg('q_msg');
+  try{ const r=await api('tVioList',{q:$('q_q').value,from:$('q_from').value,to:$('q_to').value});
+    const sm=$('q_sum'); sm.innerHTML='<tr><th>班級</th><th>座號</th><th>姓名</th><th>累計點數</th><th>狀態</th></tr>';
+    r.summary.forEach(s=>{ const tr=el('tr'); [s.cls,s.seat,s.name,s.points+' / '+r.threshold,s.status].forEach(x=>tr.appendChild(el('td','',x))); if(s.points>=r.threshold) tr.style.background='#fee2e2'; sm.appendChild(tr); });
+    if(!r.summary.length) sm.innerHTML='<tr><td>沒有違規點數紀錄</td></tr>';
+    const t=$('q_tbl'); t.innerHTML='<tr><th>日期</th><th>班級</th><th>座號</th><th>姓名</th><th>違規項目</th><th>備註</th><th>登記人</th><th>累計</th><th></th></tr>';
+    r.rows.forEach(x=>{ const tr=el('tr',x.void?'void':''); [x.date,x.cls,x.seat,x.name,x.items,x.note,x.by,x.points].forEach(v=>tr.appendChild(el('td','',v)));
+      const td=el('td'); if(!x.void){ const b=el('button','red sm','作廢'); b.onclick=async()=>{ if(!confirm('確定作廢這筆違規？點數會重新計算。')) return; try{ const m=await api('tVoid',{row:x.row}); msg('q_msg','ok',m.message); runQuery(); }catch(e){ msg('q_msg','err',e.message);} }; td.appendChild(b);} else td.textContent='已作廢'; tr.appendChild(td); t.appendChild(tr); });
+    if(!r.rows.length) t.innerHTML='<tr><td>沒有符合的紀錄</td></tr>';
+  }catch(e){ msg('q_msg','err',e.message); }
+}
+
+/* 請假名單 */
+async function loadLeave(){
+  const k=$('date').value; $('l_title').textContent=md(k)+' 請假名單';
+  const t=$('l_tbl'); t.innerHTML='';
+  try{ const r=await api('tLeaveList',{date:k});
+    t.innerHTML='<tr><th>班級</th><th>座號</th><th>姓名</th><th>事由</th><th>備註</th><th>家長電話</th></tr>';
+    r.forEach(x=>{ const tr=el('tr'); [x.cls,x.seat,x.name,x.reason,x.note,x.phones].forEach(v=>tr.appendChild(el('td','',v))); t.appendChild(tr); });
+    if(!r.length) t.innerHTML='<tr><td>當日沒有人請假</td></tr>';
+  }catch(e){ t.innerHTML='<tr><td>'+e.message+'</td></tr>'; }
+}
+
+(async()=>{
+  try{ const i=await fetch(API_URL+'?action=info').then(r=>r.json()); if(i.ok){ $('title').textContent=(i.data.school||'')+' '+i.data.title+'－輪值'; document.title=i.data.title+' 輪值'; } }catch(e){}
+  await loadTeachers();
+  if(TOKEN) start();
+})();
+</script>
+</body>
+</html>
