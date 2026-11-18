@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>自習報名／加退選</title>
+<style>
+:root{--bg:#f3f6fb;--card:#fff;--ink:#1f2937;--mute:#6b7280;--line:#dbe3ef;--pri:#1f5fbf;--pri2:#e8f0fe;--ok:#15803d;--warn:#b45309;--bad:#b91c1c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 "Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif}
+header{background:linear-gradient(135deg,#1f5fbf,#2f80ed);color:#fff;padding:22px 16px}
+header h1{margin:0;font-size:22px}header p{margin:4px 0 0;opacity:.9;font-size:14px}
+main{max-width:760px;margin:0 auto;padding:14px 14px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.card h2{margin:0 0 8px;font-size:18px;color:var(--pri)}
+.banner{padding:12px 14px;border-radius:10px;font-weight:600;margin:14px 0}
+.b-initial{background:#dcfce7;color:#166534}.b-change{background:#fef3c7;color:#92400e}.b-closed,.b-notopen{background:#fee2e2;color:#991b1b}
+.rule h3{margin:12px 0 2px;font-size:16px}.rule p{margin:0;white-space:pre-line}
+.rules-box{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:4px 14px 12px;background:#fbfcfe}
+ol.pledge{padding-left:22px;margin:6px 0}ol.pledge li{margin:4px 0}
+.agree{display:flex;gap:10px;align-items:flex-start;margin:14px 0 6px;font-weight:600;cursor:pointer}
+.agree input{width:22px;height:22px;margin-top:3px}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+button{font:inherit;border:0;border-radius:10px;padding:11px 18px;background:var(--pri);color:#fff;cursor:pointer;font-weight:600}
+button.sec{background:var(--pri2);color:var(--pri)}button:disabled{opacity:.45;cursor:not-allowed}
+button.green{background:var(--ok)}
+label.f{display:block;margin:12px 0 4px;font-weight:600}label.f small{color:var(--mute);font-weight:400}
+input[type=text],input[type=tel],input[type=email],input[type=number],textarea,select{width:100%;font:inherit;padding:10px 12px;border:1px solid #c5d0e2;border-radius:10px;background:#fff}
+textarea{min-height:70px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row3{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:10px}
+.days{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative}.chip input{position:absolute;opacity:0}
+.chip span{display:block;padding:10px 16px;border:1.5px solid #c5d0e2;border-radius:999px;background:#fff;cursor:pointer;user-select:none}
+.chip input:checked+span{background:var(--pri);color:#fff;border-color:var(--pri)}
+.chip input:focus-visible+span{outline:3px solid #93b4ee}
+.msg{margin:12px 0;padding:11px 14px;border-radius:10px;display:none}
+.msg.ok{display:block;background:#dcfce7;color:#166534}.msg.err{display:block;background:#fee2e2;color:#991b1b}.msg.info{display:block;background:#e8f0fe;color:#1e3a8a}
+.inline{display:flex;gap:8px}.inline input{flex:1}.inline button{white-space:nowrap}
+.hint{font-size:13px;color:var(--mute);margin-top:4px}
+.hidden{display:none!important}
+.susp li{margin:2px 0}
+.tip{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:14px;color:#78350f}
+footer{text-align:center;color:var(--mute);font-size:13px;padding:10px}
+@media(max-width:520px){.row,.row3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><h1 id="title">自習報名</h1><p id="sub">載入中…</p></header>
+<main>
+  <div id="banner" class="banner hidden"></div>
+
+  <section class="card">
+    <h2>📋 報名辦法</h2>
+    <div class="rules-box rule" id="rules">載入中…</div>
+  </section>
+  <section class="card">
+    <h2>📜 自律公約</h2>
+    <div class="rules-box rule" id="pledge">載入中…</div>
+    <div id="suspBox" class="hidden" style="margin-top:12px"><b>近期暫停自習日：</b><ul class="susp" id="susp"></ul></div>
+    <label class="agree"><input type="checkbox" id="agree"> 我（家長與學生）已詳閱並同意以上報名辦法及自律公約</label>
+    <div class="actions">
+      <button id="btnReg" disabled>✍️ 初次報名</button>
+      <button id="btnChg" class="sec" disabled>🔄 加退選／修改</button>
+    </div>
+    <div class="hint" id="actHint"></div>
+  </section>
+
+  <!-- 初次報名 -->
+  <section class="card hidden" id="regCard">
+    <h2>✍️ 初次報名</h2>
+    <div class="row3">
+      <div><label class="f">班級</label><input type="text" id="r_cls" placeholder="例：901" maxlength="10" inputmode="numeric"></div>
+      <div><label class="f">座號</label><input type="number" id="r_seat" min="1" max="99" inputmode="numeric"></div>
+      <div><label class="f">姓名</label><input type="text" id="r_name" maxlength="20"></div>
+    </div>
+    <label class="f">自習日（可複選，不限天數）</label>
+    <div class="days" id="r_days"></div>
+    <label class="f">備註 <small>（選填）</small></label>
+    <textarea id="r_note" maxlength="200" placeholder="例：週三固定有補習，預計晚到"></textarea>
+    <label class="f">家長姓名 <small>（兩位請用 / 分隔，例：王大明/李小美）</small></label>
+    <input type="text" id="r_parents">
+    <label class="f">連絡電話 <small>（兩位請用 / 分隔，例：0912345678/0922333444）</small></label>
+    <input type="tel" id="r_phones">
+    <label class="f">Email 信箱 <small>（接收驗證碼、請假及違規通知）</small></label>
+    <input type="email" id="r_email" placeholder="name@example.com（兩位請用 / 分隔）">
+    <div class="hint">報名成功後，系統會寄「專屬驗證碼」到此信箱，日後請假、加退選都要用，請填寫正確。</div>
+    <div class="tip" style="margin-top:12px">每日費用 <b class="fee"></b> 元。送出前請再次確認內容；截止前可用「加退選」自行修改。</div>
+    <div id="r_msg" class="msg"></div>
+    <div class="actions" style="margin-top:12px"><button class="green" id="r_submit">✅ 確認報名</button><button class="sec" id="r_cancel">取消</button></div>
+  </section>
+
+  <!-- 加退選 -->
+  <section class="card hidden" id="chgCard">
+    <h2>🔄 加退選／修改自習日</h2>
+    <div id="c_step1">
+      <p class="hint" style="margin-top:0">請輸入報名時的班級、座號、姓名，以及報名成功信中的「專屬驗證碼」。忘記驗證碼可點下方按鈕重新寄到報名信箱。</p>
+      <div class="row3">
+        <div><label class="f">班級</label><input type="text" id="c_cls" maxlength="10" inputmode="numeric"></div>
+        <div><label class="f">座號</label><input type="number" id="c_seat" min="1" max="99" inputmode="numeric"></div>
+        <div><label class="f">姓名</label><input type="text" id="c_name" maxlength="20"></div>
+      </div>
+      <div class="actions" style="margin-top:12px"><button class="sec" id="c_send">忘記驗證碼？重新寄到 Email</button></div>
+      <label class="f">驗證碼</label>
+      <div class="inline"><input type="text" id="c_code" inputmode="numeric" maxlength="6" placeholder="報名成功信中的 6 位數字"><button id="c_login">登入</button></div>
+    </div>
+    <div id="c_step2" class="hidden">
+      <p><b id="c_who"></b>　目前自習日：<b id="c_cur"></b></p>
+      <div id="c_pending" class="tip hidden" style="margin-bottom:10px"></div>
+      <label class="f">調整後的自習日</label>
+      <div class="days" id="c_days"></div>
+      <div id="c_rulehint" class="tip" style="margin-top:12px"></div>
+      <label class="f">備註 <small>（選填）</small></label>
+      <textarea id="c_note" maxlength="200"></textarea>
+      <div class="actions" style="margin-top:12px"><button class="green" id="c_submit">送出申請</button></div>
+    </div>
+    <div id="c_msg" class="msg"></div>
+    <div class="actions" style="margin-top:8px"><button class="sec" id="c_cancel">關閉</button></div>
+  </section>
+</main>
+<footer id="foot"></footer>
+
+<script>
+/* ★ 部署 Apps Script 後，把網頁應用程式網址（以 /exec 結尾）貼在這裡 ★ */
+const API_URL = 'https://script.google.com/macros/s/AKfycbyoRcC09HhraAuBpc6vC7QFfHALMQX_wIX_pU6N1A0ias_M1dJeI-mghxdS41ArdkVa/exec';
+
+const DAYN = ['週一','週二','週三','週四','週五','週六'];
+let INFO = null, TOKEN = '';
+const $ = id => document.getElementById(id);
+
+async function api(action, data){
+  const r = await fetch(API_URL, {method:'POST', body: JSON.stringify(Object.assign({action}, data||{}))});
+  const j = await r.json();
+  if(!j.ok) throw new Error(j.error);
+  return j.data;
+}
+function msg(id, type, text){ const e=$(id); e.className='msg '+(type||''); e.textContent=text||''; if(!type) e.style.display='none'; else e.style.display=''; }
+function busy(btn, on, label){ if(on){btn.dataset.l=btn.textContent;btn.disabled=true;btn.textContent=label||'處理中…';} else {btn.disabled=false;btn.textContent=btn.dataset.l||btn.textContent;} }
+function mkDays(el, prefix, vals){
+  el.innerHTML='';
+  DAYN.forEach((d,i)=>{ if(i===5 && INFO && !INFO.hasSat) return; const l=document.createElement('label'); l.className='chip';
+    l.innerHTML='<input type="checkbox" data-i="'+i+'"><span>'+d+(i===5?'（上午）':'')+'</span>';
+    if(vals&&vals[i]) l.querySelector('input').checked=true; el.appendChild(l); });
+}
+function getDays(el){ return (()=>{const a=Array.from(el.querySelectorAll('input')).map(x=>x.checked); while(a.length<6)a.push(false); return a;})(); }
+function el(tag, cls, text){ const e=document.createElement(tag); if(cls) e.className=cls; if(text!==undefined) e.textContent=text; return e; }
+
+function render(){
+  const i=INFO;
+  document.title=i.title+'｜報名／加退選';
+  $('title').textContent=(i.school?i.school+' ':'')+i.title;
+  $('sub').textContent=i.semester+'　報名／加退選系統';
+  document.querySelectorAll('.fee').forEach(x=>x.textContent=i.fee);
+  const R=$('rules'); R.innerHTML='';
+  i.rules.filter(r=>r.type==='辦法').forEach((r,n)=>{ R.appendChild(el('h3','',(n+1)+'. '+r.title)); R.appendChild(el('p','',r.content)); });
+  const P=$('pledge'); P.innerHTML='';
+  const ol=el('ol','pledge');
+  i.rules.filter(r=>r.type==='公約').forEach(r=>{
+    if(r.title.indexOf('說明列')>=0){ P.appendChild(el('p','',r.content)); return; }
+    const li=el('li'); const b=el('b','',r.title+'：'); li.appendChild(b); li.appendChild(document.createTextNode(r.content)); ol.appendChild(li); });
+  P.insertBefore(ol,P.firstChild);
+  const b=$('banner'); b.classList.remove('hidden'); b.className='banner b-'+i.phase;
+  const t={notopen:'⏳ 尚未開放報名，開放時間：'+i.open,
+    initial:'🟢 初次報名中，截止時間：'+i.deadline+'（截止前可自行修改）',
+    change:'🟡 初次報名已截止，目前開放「加退選」申請（每週統一處理），'+i.stop+' 後停止異動',
+    closed:'🔴 報名及異動皆已截止'}[i.phase];
+  b.textContent=t;
+  if(i.suspensions&&i.suspensions.length){ $('suspBox').classList.remove('hidden'); const u=$('susp'); u.innerHTML='';
+    i.suspensions.forEach(s=>u.appendChild(el('li','',s.date+'（'+s.scope+'）'+(s.reason?' '+s.reason:'')))); }
+  $('foot').textContent=i.school+' '+i.semester;
+  updateButtons();
+}
+function updateButtons(){
+  const ok=$('agree').checked, ph=INFO?INFO.phase:'closed';
+  $('btnReg').disabled=!(ok&&ph==='initial');
+  $('btnChg').disabled=!(ok&&(ph==='initial'||ph==='change'));
+  $('actHint').textContent = !ok ? '請先勾選同意後才能報名。' : (ph==='change'?'初次報名已截止，請使用「加退選」。':(ph==='closed'?'目前已截止。':(ph==='notopen'?'尚未開放。':'')));
+}
+$('agree').onchange=updateButtons;
+
+$('btnReg').onclick=()=>{ $('chgCard').classList.add('hidden'); $('regCard').classList.remove('hidden'); $('regCard').scrollIntoView({behavior:'smooth'}); };
+$('btnChg').onclick=()=>{ $('regCard').classList.add('hidden'); $('chgCard').classList.remove('hidden'); $('chgCard').scrollIntoView({behavior:'smooth'}); };
+$('r_cancel').onclick=()=>$('regCard').classList.add('hidden');
+$('c_cancel').onclick=()=>{ $('chgCard').classList.add('hidden'); TOKEN=''; $('c_step1').classList.remove('hidden'); $('c_step2').classList.add('hidden'); msg('c_msg'); };
+
+$('r_submit').onclick=async()=>{
+  const b=$('r_submit'); busy(b,true,'送出中…'); msg('r_msg');
+  try{
+    const d={cls:$('r_cls').value,seat:$('r_seat').value,name:$('r_name').value,days:getDays($('r_days')),note:$('r_note').value,
+      parents:$('r_parents').value,phones:$('r_phones').value,email:$('r_email').value};
+    if(!d.cls.trim()||!d.seat||!d.name.trim()) throw new Error('請填寫班級、座號、姓名');
+    if(!d.days.some(Boolean)) throw new Error('請至少勾選一天自習日');
+    const lab=d.days.map((x,i)=>x?DAYN[i]:null).filter(Boolean).join('、');
+    if(!confirm('請確認報名資料：\n'+d.cls+' 班 '+d.seat+' 號 '+d.name+'\n自習日：'+lab+'\n\n確定送出？')){busy(b,false);return;}
+    const r=await api('register',d); msg('r_msg','ok',r.message);
+    b.disabled=true; setTimeout(()=>{b.disabled=false;b.textContent='✅ 確認報名';},4000);
+  }catch(e){ msg('r_msg','err',e.message); busy(b,false); return; }
+  b.textContent='✅ 確認報名';
+};
+
+$('c_send').onclick=async()=>{
+  const b=$('c_send'); busy(b,true,'寄送中…');
+  try{ const r=await api('sendLoginCode',{cls:$('c_cls').value,seat:$('c_seat').value,name:$('c_name').value}); msg('c_msg','info','驗證碼已重新寄至：'+r.sent.join('、')+'（請檢查垃圾郵件匣）'); }
+  catch(e){ msg('c_msg','err',e.message); } busy(b,false);
+};
+$('c_login').onclick=async()=>{
+  const b=$('c_login'); busy(b,true,'驗證中…');
+  try{ const r=await api('login',{cls:$('c_cls').value,seat:$('c_seat').value,name:$('c_name').value,code:$('c_code').value});
+    TOKEN=r.token; showMe(r.me); msg('c_msg'); }
+  catch(e){ msg('c_msg','err',e.message); } busy(b,false);
+};
+function showMe(me){
+  $('c_step1').classList.add('hidden'); $('c_step2').classList.remove('hidden');
+  $('c_who').textContent=me.cls+' 班 '+me.seat+' 號 '+me.name;
+  $('c_cur').textContent=me.days.map((x,i)=>x?DAYN[i]:null).filter(Boolean).join('、')||'無';
+  mkDays($('c_days'),'c',me.days);
+  const p=$('c_pending'); if(me.pending){ p.classList.remove('hidden'); p.textContent='您已有一筆待處理申請（'+me.pending.type+'：'+me.pending.to+'，預計 '+me.pending.effective+' 起生效）。再次送出會取代該申請。'; } else p.classList.add('hidden');
+  $('c_rulehint').innerHTML = INFO.phase==='initial'
+    ? '目前仍在初次報名期間，修改<b>立即生效</b>。'
+    : '截止後的異動<b>每週統一處理</b>：①減少／全部退選：次週起生效，生效前仍須計費、不退費，<b>全部退選後不得再加入</b>；②加報名／增加日期：視座位而定，<b>不保證有座位</b>，確認成功後才可參加。';
+}
+$('c_submit').onclick=async()=>{
+  const b=$('c_submit'); busy(b,true,'送出中…'); msg('c_msg');
+  try{
+    const days=getDays($('c_days'));
+    if(!days.some(Boolean) && !confirm('您取消了所有日期（全部退選），退出後可能無法再加入。確定嗎？')){busy(b,false);return;}
+    const r=await api('change',{token:TOKEN,days,note:$('c_note').value});
+    msg('c_msg','ok',r.message);
+    const me=await api('me',{token:TOKEN}); if(me.status==='在班') showMe(me);
+    msg('c_msg','ok',r.message);
+  }catch(e){ msg('c_msg','err',e.message); }
+  busy(b,false);
+};
+
+(async()=>{
+  try{ INFO=await api('info'); mkDays($('r_days'),'r'); render(); }
+  catch(e){ $('sub').textContent='系統連線失敗'; $('rules').textContent='無法載入：'+e.message+'（請確認 API_URL 設定與部署權限為「所有人」）'; }
+})();
+</script>
+</body>
+</html>
