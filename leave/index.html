@@ -38,6 +38,7 @@ textarea{min-height:80px}
 .d.none{border:0;background:transparent}
 .list .it{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
 .list .it:last-child{border:0}
+.pk{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 10px}.pk label{display:flex;gap:6px;align-items:center;padding:8px 12px;border:1.5px solid #c5d0e2;border-radius:10px;background:#fff;cursor:pointer;font-size:15px}.pk label.on{background:#ccfbf1;border-color:#14b8a6}.pk input{width:18px;height:18px}.pk small{color:#6b7280}.pt{font-weight:700;margin:8px 0 2px;color:#0f766e;font-size:15px}.d.part{border-color:#fb923c}
 .warn{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;font-size:14px;color:#78350f}
 @media(max-width:520px){.row3{grid-template-columns:1fr}}
 </style>
@@ -61,7 +62,7 @@ textarea{min-height:80px}
   <div id="app" class="hidden">
     <section class="card">
       <h2 id="who"></h2>
-      <div class="warn">請假須由<b>家長</b>親自辦理，<b>請假不予退費</b>。灰色日期（未報名、暫停自習、已過期）無法請假。<span id="cut"></span></div>
+      <div class="warn">請假須由<b>家長</b>親自辦理，<b>請假不予退費</b>。灰色日期（未報名、暫停自習、已過期）無法請假；日期可只請部分節次。<span id="cut"></span></div>
     </section>
 
     <section class="card">
@@ -72,8 +73,10 @@ textarea{min-height:80px}
     </section>
 
     <section class="card">
-      <h2>📝 請假事由</h2>
+      <h2>📝 請假節次與事由</h2>
       <div class="hint" id="selInfo">尚未選擇日期</div>
+      <label class="f">請假節次 <span class="hint">（可複選；勾「全天」＝所有節次）</span></label>
+      <div id="perBox"></div>
       <label class="f">事由</label>
       <select id="reason"><option value="">請選擇事由</option></select>
       <label class="f">備註說明 <span class="hint">（選填）</span></label>
@@ -92,11 +95,11 @@ textarea{min-height:80px}
 
 <script>
 /* ★ 貼上 Apps Script 網頁應用程式網址（/exec 結尾），與報名頁相同 ★ */
-const API_URL = 'https://script.google.com/macros/s/AKfycbyhMrVifg5QXulxQwjkSW3pBkqwa6jth5zVj6dTj-btPZYUGo70v_yunGy189J9kttH/exec';
+const API_URL = 'https://script.google.com/macros/s/請貼上你的部署ID/exec';
 
 const $ = id => document.getElementById(id);
 const WD = ['日','一','二','三','四','五','六'];
-let TOKEN = sessionStorage.getItem('lv_token') || '', CAL = [], SEL = new Set();
+let TOKEN = sessionStorage.getItem('lv_token') || '', CAL = [], SEL = new Set(), PER = {night:[],sat:[]}, PSEL = {night:new Set(),sat:new Set()};
 
 async function api(action, data){
   const r = await fetch(API_URL, {method:'POST', body: JSON.stringify(Object.assign({action}, data||{}))});
@@ -122,8 +125,11 @@ async function load(){
   $('cut').textContent=' 當日請假：夜讀至 '+r.cutoffNight+' 止'+(r.hasSat?'，週六至 '+r.cutoffSat+' 止':'')+'。';
   const sel=$('reason'); sel.innerHTML='<option value="">請選擇事由</option>';
   r.reasons.forEach(x=>{ const o=document.createElement('option'); o.value=x; o.textContent=x; sel.appendChild(o); });
-  CAL=r.calendar; SEL.clear(); draw();
+  PER=r.periods; CAL=r.calendar; SEL.clear(); PSEL={night:new Set(),sat:new Set()}; draw();
 }
+
+function kindOf(k){ return new Date(k+'T00:00:00').getDay()===6?'sat':'night'; }
+function mk(tag,cls,txt){ const e=document.createElement(tag); if(cls) e.className=cls; if(txt!==undefined) e.textContent=txt; return e; }
 
 function draw(){
   const box=$('cal'); box.innerHTML='';
@@ -141,24 +147,52 @@ function draw(){
         const k=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0'), e=by[k];
         const b=document.createElement('button'); b.type='button'; b.className='d'; b.innerHTML=d;
         if(!e){ b.className+=' off'; b.disabled=true; }
-        else if(e.leave){ b.className+=' leave'; b.disabled=true; b.innerHTML=d+'<small>已請假</small>'; b.title=e.leave.reason; }
+        else if(e.leave&&(e.leave.full||e.status!=='ok')){ b.className+=' leave'; b.disabled=true; b.innerHTML=d+'<small>'+(e.leave.full?'已請假':'已請'+e.leave.label)+'</small>'; b.title=e.leave.items[0].reason; }
         else if(e.status!=='ok'){ b.className+=' off'; b.disabled=true; b.title=e.reason; b.innerHTML=d+'<small>'+(e.status==='susp'?'暫停':e.status==='notreg'?'未報名':'截止')+'</small>'; }
-        else { b.className+=' ok'+(SEL.has(k)?' sel':''); b.onclick=()=>{ SEL.has(k)?SEL.delete(k):SEL.add(k); draw(); }; }
+        else { b.className+=' ok'+(SEL.has(k)?' sel':'')+(e.leave?' part':''); if(e.leave) b.innerHTML=d+'<small>部分</small>'; b.onclick=()=>{ SEL.has(k)?SEL.delete(k):SEL.add(k); draw(); }; }
         box.appendChild(b);
       }
       m++; if(m>12){m=1;y++;}
     }
   }
   const s=[...SEL].sort(); $('selInfo').textContent=s.length?('已選 '+s.length+' 天：'+s.map(md).join('、')):'尚未選擇日期（請於上方日曆點選）';
+  drawPeriods(); drawMine();
+}
+
+function drawPeriods(){
+  const box=$('perBox'); box.innerHTML='';
+  const kinds=new Set([...SEL].map(kindOf));
+  if(!kinds.size){ box.appendChild(mk('div','hint','先在日曆選日期，再選要請假的節次')); return; }
+  [['night','夜讀（週一至週五）'],['sat','週六']].forEach(([kk,title])=>{
+    if(!kinds.has(kk)) return;
+    const ps=PER[kk]||[];
+    box.appendChild(mk('div','pt',title));
+    const wrap=mk('div','pk');
+    const all=document.createElement('label'); const ac=document.createElement('input'); ac.type='checkbox';
+    ac.checked=ps.length>0&&ps.every(p=>PSEL[kk].has(p.n)); all.className=ac.checked?'on':''; all.appendChild(ac); all.appendChild(document.createTextNode('全天'));
+    ac.onchange=()=>{ if(ac.checked) ps.forEach(p=>PSEL[kk].add(p.n)); else PSEL[kk].clear(); drawPeriods(); };
+    wrap.appendChild(all);
+    ps.forEach(p=>{
+      const l=document.createElement('label'), c=document.createElement('input'); c.type='checkbox'; c.checked=PSEL[kk].has(p.n); if(c.checked) l.className='on';
+      c.onchange=()=>{ c.checked?PSEL[kk].add(p.n):PSEL[kk].delete(p.n); drawPeriods(); };
+      l.appendChild(c); l.appendChild(document.createTextNode(p.label+' ')); l.appendChild(mk('small','',p.start+'~'+p.end)); wrap.appendChild(l);
+    });
+    box.appendChild(wrap);
+  });
+}
+
+function drawMine(){
   const list=$('mine'); list.innerHTML='';
   const mine=CAL.filter(e=>e.leave);
-  if(!mine.length){ list.innerHTML='<div class="hint">目前沒有請假紀錄</div>'; }
+  if(!mine.length){ list.innerHTML='<div class="hint">目前沒有請假紀錄</div>'; return; }
   mine.forEach(e=>{
-    const d=document.createElement('div'); d.className='it';
-    const t=document.createElement('div'); t.textContent=md(e.date)+'（週'+WD[e.dow%7]+'）'+e.leave.reason+(e.leave.note?'｜'+e.leave.note:'');
-    d.appendChild(t);
-    if(e.status!=='closed'){ const x=document.createElement('button'); x.className='red'; x.textContent='取消'; x.onclick=()=>cancel(e.date,x); d.appendChild(x); }
-    list.appendChild(d);
+    e.leave.items.forEach(it=>{
+      const p=(e.periods||[]).find(x=>x.n===it.p)||{label:'第'+it.p+'節',start:'',end:''};
+      const d=mk('div','it'), t=mk('div','',md(e.date)+'（週'+WD[e.dow%7]+'）'+p.label+(p.start?' '+p.start+'~'+p.end:'')+'｜'+it.reason+(it.note?'｜'+it.note:''));
+      d.appendChild(t);
+      if(e.status!=='closed'){ const x=mk('button','red','取消'); x.onclick=()=>cancel(e.date,it.p,x); d.appendChild(x); }
+      list.appendChild(d);
+    });
   });
 }
 
@@ -166,18 +200,21 @@ $('submit').onclick=async()=>{
   const b=$('submit'); msg('smsg');
   try{
     if(!SEL.size) throw new Error('請先在日曆選擇請假日期');
+    const kinds=new Set([...SEL].map(kindOf));
+    for(const kk of kinds){ if(!PSEL[kk].size) throw new Error('請選擇'+(kk==='sat'?'週六':'夜讀')+'要請假的節次（或勾「全天」）'); }
     if(!$('reason').value) throw new Error('請選擇請假事由');
-    if(!confirm('確定請假 '+[...SEL].sort().map(md).join('、')+'？\n（請假不予退費）')) return;
+    const sum=[...SEL].sort().map(k=>{ const kk=kindOf(k), ps=(PER[kk]||[]), ns=[...PSEL[kk]].sort(); return md(k)+(ns.length>=ps.length?' 全天':' 第'+ns.join('、')+'節'); }).join('\n');
+    if(!confirm('確定請假？\n'+sum+'\n（請假不予退費）')) return;
     busy(b,true,'送出中…');
-    const r=await api('leaveSubmit',{token:TOKEN,dates:[...SEL],reason:$('reason').value,note:$('note').value});
-    CAL=r.calendar; SEL.clear(); $('note').value=''; $('reason').value=''; draw(); msg('smsg','ok',r.message);
+    const r=await api('leaveSubmit',{token:TOKEN,dates:[...SEL],periods:{night:[...PSEL.night],sat:[...PSEL.sat]},reason:$('reason').value,note:$('note').value});
+    CAL=r.calendar; SEL.clear(); PSEL={night:new Set(),sat:new Set()}; $('note').value=''; $('reason').value=''; draw(); msg('smsg','ok',r.message);
   }catch(e){ msg('smsg','err',e.message); if(/逾時/.test(e.message)){ sessionStorage.removeItem('lv_token'); } }
   busy(b,false);
 };
-async function cancel(date,btn){
-  if(!confirm('確定取消 '+md(date)+' 的請假？')) return;
+async function cancel(date,p,btn){
+  if(!confirm('確定取消 '+md(date)+' 第'+p+'節的請假？')) return;
   btn.disabled=true;
-  try{ const r=await api('leaveCancel',{token:TOKEN,dates:[date]}); CAL=r.calendar; draw(); msg('smsg','ok',r.message); }
+  try{ const r=await api('leaveCancel',{token:TOKEN,items:[{date,p}]}); CAL=r.calendar; draw(); msg('smsg','ok',r.message); }
   catch(e){ msg('smsg','err',e.message); btn.disabled=false; }
 }
 
