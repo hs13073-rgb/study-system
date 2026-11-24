@@ -104,14 +104,14 @@ tr.void td{color:#9ca3af;text-decoration:line-through}
 
     <!-- 請假名單 -->
     <section id="t_leave" class="hidden">
-      <div class="card"><h3 style="margin-top:0" id="l_title">當日請假名單</h3><div class="scroll"><table id="l_tbl"></table></div></div>
+      <div class="card"><div class="bar" style="margin-bottom:8px"><h3 style="margin:0" id="l_title">當日請假名單</h3><span class="sp"></span><select id="l_room" style="width:auto;min-width:130px"></select></div><div class="scroll"><table id="l_tbl"></table></div></div>
     </section>
   </div>
 </main>
 
 <script>
 /* ★ 貼上 Apps Script 網頁應用程式網址（/exec 結尾），與報名頁相同 ★ */
-const API_URL = 'https://script.google.com/macros/s/AKfycbyY2wOG6Dx-y_fp1fuc1D7MozzUUPh8b1PuGEGqHNb7ej-sH5SrmGPfpN9Imn5IrUkN/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycby7I7OTsCeWdsopM4BHGrQ9sndKPpyq4wfSaTLqqGscdStn56gK3W44lbNuQw-Tkf6Fbg/exec';
 
 const $ = id => document.getElementById(id);
 const WD = ['日','一','二','三','四','五','六'];
@@ -271,15 +271,29 @@ async function runQuery(){
 }
 
 /* 請假名單 */
+let LV=null;
 async function loadLeave(){
   const k=$('date').value; $('l_title').textContent=md(k)+' 請假名單';
   const t=$('l_tbl'); t.innerHTML='';
-  try{ const r=await api('tLeaveList',{date:k});
-    t.innerHTML='<tr><th>班級</th><th>座號</th><th>姓名</th><th>請假節次</th><th>事由</th><th>備註</th><th>家長電話</th></tr>';
-    r.forEach(x=>{ const tr=el('tr'); [x.cls,x.seat,x.name,x.label+(x.label==='全天'?'':'（'+x.times+'）'),x.reason,x.note,x.phones].forEach(v=>tr.appendChild(el('td','',v))); t.appendChild(tr); });
-    if(!r.length) t.innerHTML='<tr><td>當日沒有人請假</td></tr>';
-  }catch(e){ t.innerHTML='<tr><td>'+e.message+'</td></tr>'; }
+  try{ LV=await api('tLeaveList',{date:k}); fillLvRooms(); drawLeave(); }
+  catch(e){ t.innerHTML='<tr><td>'+e.message+'</td></tr>'; }
 }
+function fillLvRooms(){
+  const sel=$('l_room'), keep=sel.value||sessionStorage.getItem('t_room')||'*'; sel.innerHTML='';
+  const add=(v,x)=>{ const o=el('option','',x); o.value=v; sel.appendChild(o); };
+  add('*','全部教室'); (LV?LV.rooms:[]).forEach(r=>add(r,r));
+  if(LV&&LV.rows.some(x=>!x.room)) add('?','未分配教室');
+  sel.value=[...sel.options].some(o=>o.value===keep)?keep:'*';
+}
+function drawLeave(){
+  const t=$('l_tbl'), rm=$('l_room').value;
+  const rows=(LV?LV.rows:[]).filter(x=>rm==='*'||(rm==='?'?!x.room:x.room===rm));
+  t.innerHTML='<tr><th>教室</th><th>座位</th><th>班級</th><th>座號</th><th>姓名</th><th>請假節次</th><th>事由</th><th>備註</th><th>家長電話</th></tr>';
+  rows.slice().sort((a,b)=>a.room.localeCompare(b.room,'zh',{numeric:true})||(a.pos?0:1)-(b.pos?0:1)||a.pos.localeCompare(b.pos,'zh',{numeric:true})||a.cls.localeCompare(b.cls,'zh')||a.seat-b.seat)
+    .forEach(x=>{ const tr=el('tr'); [x.room,x.pos,x.cls,x.seat,x.name,x.label+(x.label==='全天'?'':'（'+x.times+'）'),x.reason,x.note,x.phones].forEach(v=>tr.appendChild(el('td','',v))); t.appendChild(tr); });
+  if(!rows.length) t.innerHTML='<tr><td>'+(rm==='*'?'當日沒有人請假':'這間教室當日沒有人請假')+'</td></tr>';
+}
+$('l_room').onchange=()=>{ sessionStorage.setItem('t_room',$('l_room').value); drawLeave(); };
 
 (async()=>{
   try{ const i=await fetch(API_URL+'?action=info').then(r=>r.json()); if(i.ok){ $('title').textContent=(i.data.school||'')+' '+i.data.title+'－輪值'; document.title=i.data.title+' 輪值'; } }catch(e){}
